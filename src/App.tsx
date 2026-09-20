@@ -1,0 +1,91 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { playNote, stopNote } from './utils/audioUtils';
+
+interface GuitarString {
+    name: string;
+    frequency: number;
+}
+
+const STRINGS: GuitarString[] = [
+    { name: 'E', frequency: 82.41 },
+    { name: 'A', frequency: 110.0 },
+    { name: 'D', frequency: 146.83 },
+    { name: 'G', frequency: 196.0 },
+    { name: 'B', frequency: 246.94 },
+    { name: 'e', frequency: 329.63 },
+];
+
+const NOTE_INTERVAL_MS = 3000;
+
+function App() {
+    const [activeString, setActiveString] = useState<number | null>(null);
+    const intervalRef = useRef<number | null>(null);
+
+    const stop = useCallback(() => {
+        if (intervalRef.current !== null) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+        stopNote();
+        setActiveString(null);
+    }, []);
+
+    const start = useCallback((index: number) => {
+        if (intervalRef.current !== null) {
+            clearInterval(intervalRef.current);
+        }
+
+        const { frequency } = STRINGS[index];
+        setActiveString(index);
+        playNote(frequency);
+        intervalRef.current = window.setInterval(() => {
+            playNote(frequency);
+        }, NOTE_INTERVAL_MS);
+    }, []);
+
+    const handleStringClick = (index: number) => {
+        if (activeString === index) {
+            stop();
+        } else {
+            start(index);
+        }
+    };
+
+    useEffect(() => stop, [stop]);
+
+    return (
+        <div className="min-h-screen w-full flex flex-col items-center justify-center gap-8 bg-neutral-900 text-white px-4">
+            <h1 className="text-4xl font-semibold tracking-wide">Guitar Tuner</h1>
+
+            <div className="flex flex-row gap-4">
+                {STRINGS.map((string, index) => (
+                    <button
+                        key={string.name}
+                        onClick={() => handleStringClick(index)}
+                        className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full text-2xl font-bold border-2 transition-colors ${
+                            activeString === index
+                                ? 'bg-emerald-500 border-emerald-400'
+                                : 'bg-neutral-800 border-neutral-700 hover:bg-neutral-700'
+                        }`}
+                    >
+                        {string.name}
+                    </button>
+                ))}
+            </div>
+
+            <button
+                onClick={stop}
+                disabled={activeString === null}
+                className={`px-6 py-2 rounded-lg text-lg font-medium transition-colors ${
+                    activeString === null
+                        ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
+                        : 'bg-red-600 hover:bg-red-500 text-white'
+                }`}
+            >
+                Stop
+            </button>
+        </div>
+    );
+}
+
+export default App;
